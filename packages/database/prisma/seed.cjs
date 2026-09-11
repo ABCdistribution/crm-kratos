@@ -72,70 +72,33 @@ async function main() {
   }
 
   // =====================================================================
-  // 2) Utilisateurs (hiérarchie DR → chefs de secteur → commerciaux)
-  //    idRepr sur 3 chiffres, comme dans Minos.
+  // 2) Utilisateurs — les VRAIS comptes AD, jamais de faux.
+  //    Prérequis : la synchro de la force de vente (POST /sync/ad, ADMIN)
+  //    a provisionné les utilisateurs ; le seed ne fait que s'y adosser.
   // =====================================================================
-  async function upsertUser(u) {
-    return prisma.user.upsert({
-      where: { username: u.username },
-      update: { role: u.role, idRepr: u.idRepr ?? null, secteurId: u.secteurId ?? null, regionId: u.regionId ?? null, directeurId: u.directeurId ?? null, poste: u.poste ?? null },
-      create: {
-        username: u.username,
-        email: u.email ?? `${u.username}@abcosmetique.com`,
-        displayName: u.displayName,
-        role: u.role,
-        idRepr: u.idRepr ?? null,
-        poste: u.poste ?? null,
-        secteurId: u.secteurId ?? null,
-        regionId: u.regionId ?? null,
-        directeurId: u.directeurId ?? null,
-      },
-    });
-  }
-
-  const admin = await upsertUser({
-    username: 'andrew.mondor',
-    email: 'andrew.mondor@abcosmetique.com',
-    displayName: 'Andrew Mondor',
-    role: 'ADMIN',
-    poste: 'Administrateur CRM',
+  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+  const commerciaux = await prisma.user.findMany({
+    where: { role: 'COMMERCIAL', idRepr: { not: null }, isActive: true },
+    orderBy: { username: 'asc' },
   });
-
-  const drNord = await upsertUser({ username: 'jl.moreau', displayName: 'Jean-Luc Moreau', role: 'DIRECTEUR_REGIONAL', idRepr: '901', regionId: regions.NORD.id, poste: 'Directeur régional Nord' });
-  const drSud = await upsertUser({ username: 'c.fabre', displayName: 'Catherine Fabre', role: 'DIRECTEUR_REGIONAL', idRepr: '902', regionId: regions.SUD.id, poste: 'Directrice régionale Sud' });
-
-  const csIdf = await upsertUser({ username: 'm.lefevre', displayName: 'Marc Lefèvre', role: 'CHEF_SECTEUR', idRepr: '911', regionId: regions.NORD.id, directeurId: drNord.id, poste: 'Chef de secteur IDF' });
-  const csRha = await upsertUser({ username: 's.garnier', displayName: 'Sophie Garnier', role: 'CHEF_SECTEUR', idRepr: '912', regionId: regions.SUD.id, directeurId: drSud.id, poste: 'Chef de secteur Rhône-Alpes' });
-
-  await prisma.secteur.update({ where: { id: secteurs['S-IDF'].id }, data: { managerId: csIdf.id } });
-  await prisma.secteur.update({ where: { id: secteurs['S-NOR'].id }, data: { managerId: csIdf.id } });
-  await prisma.secteur.update({ where: { id: secteurs['S-RHA'].id }, data: { managerId: csRha.id } });
-  await prisma.secteur.update({ where: { id: secteurs['S-PAC'].id }, data: { managerId: csRha.id } });
-
-  const commerciauxDef = [
-    { username: 'p.durand', displayName: 'Pierre Durand', idRepr: '010', secteur: 'S-IDF', dr: drNord.id },
-    { username: 'a.rousseau', displayName: 'Alice Rousseau', idRepr: '020', secteur: 'S-IDF', dr: drNord.id },
-    { username: 'k.benali', displayName: 'Karim Benali', idRepr: '030', secteur: 'S-NOR', dr: drNord.id },
-    { username: 'e.martin', displayName: 'Émilie Martin', idRepr: '040', secteur: 'S-RHA', dr: drSud.id },
-    { username: 'l.girard', displayName: 'Lucas Girard', idRepr: '050', secteur: 'S-PAC', dr: drSud.id },
-    { username: 'n.petit', displayName: 'Nadia Petit', idRepr: '060', secteur: 'S-PAC', dr: drSud.id },
-  ];
-  const commerciaux = [];
-  for (const c of commerciauxDef) {
-    commerciaux.push(
-      await upsertUser({
-        username: c.username,
-        displayName: c.displayName,
-        role: 'COMMERCIAL',
-        idRepr: c.idRepr,
-        secteurId: secteurs[c.secteur].id,
-        regionId: secteurs[c.secteur].regionId,
-        directeurId: c.dr,
-        poste: 'Promoteur des ventes',
-      }),
+  const chefsSecteur = await prisma.user.findMany({
+    where: { role: 'CHEF_SECTEUR', isActive: true },
+    orderBy: { username: 'asc' },
+  });
+  if (!admin || commerciaux.length === 0) {
+    throw new Error(
+      "Aucun admin ou commercial en base : lancer d'abord la synchro AD (POST /sync/ad) — le seed ne crée pas d'utilisateurs.",
     );
   }
-  console.log(`Users : admin + 2 DR + 2 CS + ${commerciaux.length} commerciaux`);
+  // Chefs de secteur réels affectés aux secteurs de démo (round-robin).
+  const codesSecteurs = ['S-IDF', 'S-NOR', 'S-RHA', 'S-PAC'];
+  for (let i = 0; i < codesSecteurs.length && chefsSecteur.length > 0; i++) {
+    await prisma.secteur.update({
+      where: { id: secteurs[codesSecteurs[i]].id },
+      data: { managerId: chefsSecteur[i % chefsSecteur.length].id },
+    });
+  }
+  console.log(`Users AD : admin ${admin.username}, ${commerciaux.length} commerciaux, ${chefsSecteur.length} chefs de secteur`);
 
   // =====================================================================
   // 3) Centrales d'achat (3 niveaux : centrale → sous-centrale → feuille)
