@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowUp, Bell, TrendingDown } from 'lucide-react';
 import type { ClientEnrichedRow } from '@/lib/api';
+import { ClassBadge } from './class-badge';
 
 const EUR = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
@@ -58,7 +59,7 @@ function tint(nom: string): string {
   return CS_TINTS[h % CS_TINTS.length];
 }
 
-type SortKey = 'magasin' | 'enseigne' | 'ville' | 'ca' | 'delta' | 'visite' | 'alertes';
+type SortKey = 'magasin' | 'enseigne' | 'ville' | 'ca' | 'delta' | 'visite' | 'classe' | 'alertes';
 
 const chip =
   'rounded-full px-3 py-1 text-xs font-medium transition border';
@@ -103,6 +104,7 @@ export function MagasinsTable({ rows }: { rows: ClientEnrichedRow[] }) {
         case 'ca': return r.caMois;
         case 'delta': return r.deltaPct ?? -Infinity;
         case 'visite': return r.derniereVisiteJours ?? Infinity;
+        case 'classe': return r.niveauClass ?? 'H'; // sans classe : après G
         case 'alertes': return r.alertes;
       }
     };
@@ -184,6 +186,7 @@ export function MagasinsTable({ rows }: { rows: ClientEnrichedRow[] }) {
           <option value="ca:-1">CA mois (haut→bas)</option>
           <option value="delta:1">Δ vs N-1 (pire d’abord)</option>
           <option value="visite:-1">Dern. visite (ancienne d’abord)</option>
+          <option value="classe:1">Classe (A d’abord)</option>
           <option value="alertes:-1">Alertes (plus d’abord)</option>
         </select>
       </div>
@@ -201,11 +204,14 @@ export function MagasinsTable({ rows }: { rows: ClientEnrichedRow[] }) {
                   {r.ville ? ` · ${r.ville}` : ''}
                 </p>
               </div>
-              {r.alertes > 0 ? (
-                <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-100 px-1 text-xs font-bold text-red-600 dark:bg-red-500/15">
-                  {r.alertes}
-                </span>
-              ) : null}
+              <span className="flex shrink-0 items-center gap-1.5">
+                <ClassBadge value={r.niveauClass} />
+                {r.alertes > 0 ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1 text-xs font-bold text-red-600 dark:bg-red-500/15">
+                    {r.alertes}
+                  </span>
+                ) : null}
+              </span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span className="font-semibold text-brand dark:text-accent">
@@ -253,6 +259,7 @@ export function MagasinsTable({ rows }: { rows: ClientEnrichedRow[] }) {
               <Th label="CA mois" k="ca" sort={sort} onSort={toggleSort} align="right" />
               <Th label="Δ vs N-1" k="delta" sort={sort} onSort={toggleSort} align="right" />
               <Th label="Dern. visite" k="visite" sort={sort} onSort={toggleSort} />
+              <Th label="Classe" k="classe" sort={sort} onSort={toggleSort} align="center" />
               <Th label="Alertes" k="alertes" sort={sort} onSort={toggleSort} align="center" />
             </tr>
           </thead>
@@ -316,6 +323,9 @@ export function MagasinsTable({ rows }: { rows: ClientEnrichedRow[] }) {
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
+                  {r.niveauClass ? <ClassBadge value={r.niveauClass} /> : <span className="text-neutral-300">—</span>}
+                </td>
+                <td className="px-4 py-3 text-center">
                   {r.alertes > 0 ? (
                     <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1 text-xs font-bold text-red-600 dark:bg-red-500/15">
                       {r.alertes}
@@ -328,7 +338,7 @@ export function MagasinsTable({ rows }: { rows: ClientEnrichedRow[] }) {
             ))}
             {visibles.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-neutral-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-neutral-400">
                   Aucun magasin ne correspond à ces filtres.
                 </td>
               </tr>
