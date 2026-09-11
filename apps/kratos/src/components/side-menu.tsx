@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   BadgePercent,
   Settings,
+  Users,
   LogOut,
   Menu,
   X,
@@ -55,6 +56,10 @@ const SECTIONS: Section[] = [
   {
     label: 'Moi',
     children: [{ href: '/parametres', label: 'Paramètres', icon: Settings }],
+  },
+  {
+    label: 'Administration',
+    children: [{ href: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['ADMIN'] }],
   },
 ];
 
