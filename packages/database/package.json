@@ -13,6 +13,7 @@
   "scripts": {
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:seed": "node prisma/seed.cjs",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -20,7 +21,9 @@
     "@prisma/client-runtime-utils": "7.9.1"
   },
   "devDependencies": {
+    "@prisma/adapter-pg": "^7",
     "dotenv": "^17.4.2",
+    "pg": "^8",
     "prisma": "^7",
     "prisma-erd-generator": "^2.4.4"
   }

@@ -145,9 +145,15 @@ importers:
         specifier: 7.9.1
         version: 7.9.1
     devDependencies:
+      '@prisma/adapter-pg':
+        specifier: ^7
+        version: 7.9.1
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      pg:
+        specifier: ^8
+        version: 8.22.0
       prisma:
         specifier: ^7
         version: 7.9.1(@types/react-dom@19.2.4(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
