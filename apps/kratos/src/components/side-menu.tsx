@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,6 +14,8 @@ import {
   BadgePercent,
   Settings,
   LogOut,
+  Menu,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { logout } from '@/lib/auth-actions';
@@ -59,7 +62,20 @@ function isActive(pathname: string, href: string) {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SideMenu({
+/** Marque « K Kratos » (réutilisée sidebar + barre mobile). */
+function Brand() {
+  return (
+    <Link href="/" className="flex items-center gap-2.5">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-sm font-bold text-white dark:bg-accent dark:text-brand">
+        K
+      </span>
+      <span className="text-lg font-bold tracking-tight">Kratos</span>
+    </Link>
+  );
+}
+
+/** Contenu du menu (navigation + pied utilisateur), partagé sidebar / tiroir mobile. */
+function MenuPanel({
   me,
   notifications,
 }: {
@@ -69,16 +85,7 @@ export function SideMenu({
   const pathname = usePathname();
 
   return (
-    // Suit le thème : claire (blanche, texte foncé) en mode clair, navy en mode sombre.
-    <aside className="sticky top-0 z-20 flex h-screen w-60 shrink-0 flex-col border-r border-neutral-200 bg-white text-neutral-800 dark:border-navy-700 dark:bg-navy-950 dark:text-neutral-100">
-      {/* Marque */}
-      <Link href="/" className="flex items-center gap-2.5 px-4 py-4">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-sm font-bold text-white dark:bg-accent dark:text-brand">
-          K
-        </span>
-        <span className="text-lg font-bold tracking-tight">Kratos</span>
-      </Link>
-
+    <>
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         {SECTIONS.map((section, i) => {
@@ -140,7 +147,94 @@ export function SideMenu({
           </form>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function SideMenu({
+  me,
+  notifications,
+}: {
+  me: Me;
+  notifications: { nonLues: number; items: NotificationItem[] };
+}) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  // Le tiroir se referme à chaque navigation (clic sur un lien du menu).
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  // Échap ferme le tiroir ; le fond de page ne défile pas tant qu'il est ouvert.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
+  const surface =
+    'border-neutral-200 bg-white text-neutral-800 dark:border-navy-700 dark:bg-navy-950 dark:text-neutral-100';
+
+  return (
+    <>
+      {/* ≥ md : sidebar permanente (comportement historique). */}
+      <aside className={`sticky top-0 z-20 hidden h-screen w-60 shrink-0 flex-col border-r md:flex ${surface}`}>
+        <div className="px-4 py-4">
+          <Brand />
+        </div>
+        <MenuPanel me={me} notifications={notifications} />
+      </aside>
+
+      {/* < md : barre supérieure avec hamburger. */}
+      <header className={`sticky top-0 z-20 flex items-center gap-2 border-b px-3 py-2.5 md:hidden ${surface}`}>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-lg p-2 text-neutral-600 transition hover:bg-neutral-100 dark:text-white dark:hover:bg-accent/20"
+          aria-label="Ouvrir le menu"
+          aria-expanded={open}
+        >
+          <Menu size={22} />
+        </button>
+        <div className="flex-1">
+          <Brand />
+        </div>
+        <NotificationsBell nonLues={notifications.nonLues} items={notifications.items} />
+        <ThemeToggle />
+      </header>
+
+      {/* < md : tiroir coulissant + voile de fond. */}
+      {open ? (
+        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Menu principal">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Fermer le menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r shadow-xl ${surface}`}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <Brand />
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 dark:text-white dark:hover:bg-accent/20"
+                aria-label="Fermer le menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <MenuPanel me={me} notifications={notifications} />
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

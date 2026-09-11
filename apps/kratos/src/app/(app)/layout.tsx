@@ -8,10 +8,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const notifications = await getNotifications();
 
   return (
-    <div className="flex min-h-screen">
+    // Mobile : barre hamburger au-dessus du contenu (flux normal) ; ≥ md : sidebar + contenu côte à côte.
+    <div className="min-h-screen md:flex">
       <SideMenu me={me} notifications={notifications ?? { nonLues: 0, items: [] }} />
       <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-[88rem] px-6 py-6">{children}</div>
+        <div className="mx-auto max-w-[88rem] px-4 py-4 sm:px-6 sm:py-6">{children}</div>
       </main>
     </div>
   );
