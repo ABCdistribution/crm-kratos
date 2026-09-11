@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+.turbo/
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+
+# Prisma
+packages/database/generated/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db
+
+# Docker
+docker-data/
+
+# Fichiers ERP déposés pour import (données, jamais versionnées)
+imports/
+apps/api/testas400/
+
+# Couverture de tests
+coverage/
+
+# Claude Code — réglages locaux machine (le reste de .claude/ peut être versionné)
+.claude/settings.local.json

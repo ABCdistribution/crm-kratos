@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+/*
+ * Thème : clair par défaut, sombre via la classe `.dark` sur <html>
+ * (posée par le bouton de bascule, mémorisée en localStorage).
+ * La variante `dark:` de Tailwind est en mode « classe », pas média.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Palette de marque ABC */
+@theme {
+  --color-brand: #08184d; /* bleu marine — couleur principale */
+  --color-accent: #65fbfd; /* cyan — graphes & chiffres secondaires */
+  --color-brand-light: #6b83c9; /* marine éclairci (série secondaire en mode sombre) */
+
+  /* Surfaces du mode sombre, dérivées du marine (pas de noir neutre) */
+  --color-navy-950: #050f33; /* fond des cartes et de la sidebar */
+  --color-navy-900: #0b1b4f; /* variante plus claire */
+  --color-navy-800: #14276b; /* survols, chips, en-têtes de tableau */
+  --color-navy-700: #22367c; /* bordures */
+  --color-navy-600: #31479c; /* bordures appuyées / axes */
+
+  /* Ombre douce périwinkle (#A2B5F4) autour des cartes navy */
+  --shadow-card:
+    0 2px 8px -2px rgb(162 181 244 / 0.35),
+    0 8px 28px -6px rgb(162 181 244 / 0.45);
+}
+
+:root {
+  /* Fond bleu clair identique à l'app mobile (#F3F5FC) — les cartes blanches
+     y ressortent avec leur ombre périwinkle, comme sur téléphone. */
+  --background: #f3f5fc;
+  --foreground: #0a0a0a;
+}
+
+/*
+ * Dark mode global : `.dark` sur <html> (posé par le bouton de bascule).
+ * Le fond passe en marine profond et les cartes (`.shadow-card`, blanches en
+ * clair) deviennent navy. Le reste bascule via les variantes `dark:` déjà
+ * présentes dans les composants (texte, bordures, boutons cyan…).
+ */
+:root.dark {
+  --background: #050f33; /* marine profond, plus sombre que les cartes */
+  --color-accent: #1a67ff; /* en sombre, l'accent passe du cyan au bleu vif */
+}
+.dark .shadow-card {
+  background-color: #0b1b4f; /* carte navy, un cran au-dessus du fond */
+  border: 1px solid #22367c;
+}
+/* Sur un bouton/élément à fond accent (bleu vif) en sombre, le texte marine
+   serait illisible → on le force en blanc. */
+.dark .dark\:bg-accent {
+  color: #fff;
+}
+
+/*
+ * `.dark` est posé LOCALEMENT sur les surfaces navy (sidebar, cartes) :
+ * le texte y bascule en clair par défaut, le reste du site reste blanc.
+ */
+.dark {
+  --foreground: #e8ecf8;
+  color: var(--foreground);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/*
+ * Effet gloss sur les cartes navy : liseré lumineux en haut + reflet dégradé
+ * qui s'estompe vers le milieu. Purement décoratif (pointer-events: none).
+ */
+.dark.shadow-card {
+  position: relative;
+  box-shadow:
+    var(--shadow-card),
+    inset 0 1px 0 rgb(255 255 255 / 0.14);
+}
+.dark.shadow-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.09),
+    rgb(255 255 255 / 0.03) 35%,
+    transparent 55%
+  );
+  pointer-events: none;
+}
+
+/*
+ * Lisibilité sur les surfaces navy (.dark) : les gris neutres y sont trop sombres,
+ * on les remonte en tons périwinkle clairs. Hors des cartes (fond blanc), ils
+ * restent gris. Les variantes explicites `dark:text-*` gardent la priorité.
+ */
+.dark :where(.text-neutral-300) {
+  color: #8fa3da;
+}
+.dark :where(.text-neutral-400) {
+  color: #9db0e4;
+}
+.dark :where(.text-neutral-500) {
+  color: #b3c1ec;
+}
+.dark :where(.text-neutral-600, .text-neutral-700) {
+  color: #d2dbf6;
+}
