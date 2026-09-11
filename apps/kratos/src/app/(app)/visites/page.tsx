@@ -51,7 +51,43 @@ export default async function VisitesPage({
         </p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-2xl bg-white shadow-card">
+          {/* < md : cartes visites. */}
+          <ul className="flex flex-col gap-2.5 md:hidden">
+            {result!.data.map((v) => (
+              <li key={v.id} className="relative rounded-2xl bg-white p-4 shadow-card">
+                {v.client ? (
+                  <Link href={`/clients/${v.client.id}`} className="absolute inset-0" aria-label={`Fiche ${v.client.enseigne}`} />
+                ) : null}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-brand dark:text-accent">{v.client?.enseigne ?? '—'}</p>
+                    <p className="text-[11px] text-neutral-400">
+                      {DATE.format(new Date(v.createdAt))} · il y a {jours(v.createdAt)} j
+                      {v.client?.ville ? ` · ${v.client.ville}` : ''}
+                    </p>
+                  </div>
+                  {v.pem ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-600 dark:bg-amber-500/15">
+                      <Star size={11} /> PEM
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
+                  {v.motif ? <span>{v.motif}</span> : null}
+                  <span>
+                    DN <span className="font-semibold text-brand dark:text-accent">{v.dnAbc ?? '—'}</span>
+                    {' / conc. '}{v.dnConcurrence ?? '—'}
+                  </span>
+                  {v._count.photos > 0 ? (
+                    <span className="inline-flex items-center gap-1"><Camera size={13} /> {v._count.photos}</span>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* ≥ md : tableau. */}
+          <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-card md:block">
             <table className="w-full min-w-[820px] text-sm">
               <thead className="border-b border-neutral-100 text-left text-[11px] uppercase tracking-wider text-neutral-400 dark:border-navy-700">
                 <tr>

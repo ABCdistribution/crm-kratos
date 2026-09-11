@@ -166,8 +166,83 @@ export function MagasinsTable({ rows }: { rows: ClientEnrichedRow[] }) {
         ) : null}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-2xl bg-white shadow-card">
+      {/* < md : tri compact (les en-têtes cliquables du tableau n'existent pas en vue cartes). */}
+      <div className="flex items-center gap-2 md:hidden">
+        <label htmlFor="tri-magasins" className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+          Tri
+        </label>
+        <select
+          id="tri-magasins"
+          value={`${sort.key}:${sort.dir}`}
+          onChange={(e) => {
+            const [key, dir] = e.target.value.split(':');
+            setSort({ key: key as SortKey, dir: Number(dir) as 1 | -1 });
+          }}
+          className="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-xs text-neutral-700 dark:border-navy-700 dark:bg-navy-950 dark:text-neutral-200"
+        >
+          <option value="magasin:1">Magasin (A→Z)</option>
+          <option value="ca:-1">CA mois (haut→bas)</option>
+          <option value="delta:1">Δ vs N-1 (pire d’abord)</option>
+          <option value="visite:-1">Dern. visite (ancienne d’abord)</option>
+          <option value="alertes:-1">Alertes (plus d’abord)</option>
+        </select>
+      </div>
+
+      {/* < md : cartes magasins. */}
+      <ul className="flex flex-col gap-2.5 md:hidden">
+        {visibles.map((r) => (
+          <li key={r.id} className="relative rounded-2xl bg-white p-4 shadow-card">
+            <Link href={`/clients/${r.id}`} className="absolute inset-0" aria-label={`Fiche ${r.enseigne}`} />
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium text-brand dark:text-accent">{r.enseigne}</p>
+                <p className="text-[11px] text-neutral-400">
+                  <span className="font-mono">{r.codeAs400}</span>
+                  {r.ville ? ` · ${r.ville}` : ''}
+                </p>
+              </div>
+              {r.alertes > 0 ? (
+                <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-100 px-1 text-xs font-bold text-red-600 dark:bg-red-500/15">
+                  {r.alertes}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span className="font-semibold text-brand dark:text-accent">
+                {r.caMois > 0 ? EUR.format(r.caMois) : 'CA —'}
+              </span>
+              {r.deltaPct != null ? (
+                <span className={r.deltaPct >= 0 ? 'font-medium text-emerald-600' : 'font-medium text-red-500'}>
+                  {r.deltaPct >= 0 ? '+' : ''}{r.deltaPct} %
+                </span>
+              ) : null}
+              {r.derniereVisiteJours == null ? (
+                <span className="text-neutral-400">jamais visité</span>
+              ) : (
+                <span className={r.enRetard ? 'font-medium text-red-500' : 'text-neutral-500'}>
+                  visite {r.derniereVisiteJours} j
+                </span>
+              )}
+              {r.cs ? (
+                <span className="inline-flex items-center gap-1.5 text-neutral-500">
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold ${tint(r.cs.displayName)}`}>
+                    {initiales(r.cs.displayName)}
+                  </span>
+                  {r.cs.displayName.split(/\s+/)[0]}
+                </span>
+              ) : null}
+            </div>
+          </li>
+        ))}
+        {visibles.length === 0 ? (
+          <li className="rounded-2xl bg-white px-4 py-8 text-center text-sm text-neutral-400 shadow-card">
+            Aucun magasin ne correspond à ces filtres.
+          </li>
+        ) : null}
+      </ul>
+
+      {/* ≥ md : tableau. */}
+      <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-card md:block">
         <table className="w-full min-w-[900px] text-sm">
           <thead className="border-b border-neutral-100 text-left text-[11px] uppercase tracking-wider text-neutral-400 dark:border-navy-700">
             <tr>

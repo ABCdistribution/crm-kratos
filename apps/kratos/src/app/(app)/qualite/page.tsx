@@ -48,7 +48,33 @@ export default async function QualitePage({
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-xl bg-white shadow-card">
+          {/* < md : cartes rappels. */}
+          <ul className="flex flex-col gap-2.5 md:hidden">
+            {result!.data.map((a) => (
+              <li key={a.id} className="rounded-2xl bg-white p-4 shadow-card">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 text-sm font-medium">{a.libelle}</p>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600">
+                    <PackageX size={12} />
+                    Rappel
+                  </span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500">
+                  <span className="font-mono">{a.codeAs400}</span>
+                  {a.marque?.nom ? <span>{a.marque.nom}</span> : null}
+                  {a.statut ? <span>{a.statut}</span> : null}
+                </div>
+              </li>
+            ))}
+            {result!.data.length === 0 ? (
+              <li className="rounded-2xl bg-white px-4 py-8 text-center text-sm text-neutral-400 shadow-card">
+                Aucun produit en rappel.
+              </li>
+            ) : null}
+          </ul>
+
+          {/* ≥ md : tableau. */}
+          <div className="hidden overflow-x-auto rounded-xl bg-white shadow-card md:block">
             <table className="w-full text-sm">
               <thead className="bg-neutral-50 text-left text-neutral-500 dark:bg-navy-950/50">
                 <tr>

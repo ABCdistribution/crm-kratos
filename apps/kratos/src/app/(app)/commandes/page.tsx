@@ -69,7 +69,39 @@ export default async function CommandesPage({
         </p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl bg-white shadow-card">
+          {/* < md : cartes commandes. */}
+          <ul className="flex flex-col gap-2.5 md:hidden">
+            {result!.data.map((c) => (
+              <li key={c.id} className="relative rounded-2xl bg-white p-4 shadow-card">
+                <Link href={`/commandes/${c.id}`} className="absolute inset-0" aria-label={`Commande ${c.numero}`} />
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs font-medium text-brand dark:text-accent">{c.numero}</p>
+                    <p className="mt-0.5 truncate text-sm">
+                      {c.client ? c.client.enseigne : (c.raisonSocialeCmd ?? '—')}
+                    </p>
+                  </div>
+                  <StatutBadge annulee={c.annulee} />
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
+                  <span className="font-medium text-neutral-800 dark:text-accent">{EUR.format(c.total)}</span>
+                  <span>{c.dateCommande ? DATE_FMT.format(new Date(c.dateCommande)) : '—'}</span>
+                  <span>{c.nbLignes} ligne{c.nbLignes > 1 ? 's' : ''}</span>
+                  {c.typeCmd ? (
+                    <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-xs dark:bg-navy-800">{c.typeCmd}</span>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+            {result!.data.length === 0 ? (
+              <li className="rounded-2xl bg-white px-4 py-8 text-center text-sm text-neutral-400 shadow-card">
+                Aucune commande trouvée.
+              </li>
+            ) : null}
+          </ul>
+
+          {/* ≥ md : tableau. */}
+          <div className="hidden overflow-x-auto rounded-xl bg-white shadow-card md:block">
             <table className="w-full text-sm">
               <thead className="bg-neutral-50 text-left text-neutral-500 dark:bg-navy-950/50">
                 <tr>

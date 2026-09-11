@@ -244,7 +244,8 @@ export default async function ClientFiche({ params }: { params: Promise<{ id: st
               {histo.commandes.length === 0 ? (
                 <p className="px-5 py-4 text-sm text-neutral-400">Aucune commande pour ce magasin.</p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-sm">
                   <thead className="text-left text-xs text-neutral-400">
                     <tr className="border-b border-neutral-100 dark:border-navy-700">
                       <th className="px-5 py-2 font-medium">N°</th>
@@ -297,6 +298,7 @@ export default async function ClientFiche({ params }: { params: Promise<{ id: st
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </section>
 
