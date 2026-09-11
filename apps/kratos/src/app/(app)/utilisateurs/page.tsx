@@ -1,15 +1,32 @@
 import { redirect } from 'next/navigation';
-import { getMe, listUsers, type Paginated, type UserRow } from '@/lib/api';
+import Link from 'next/link';
+import { getMe, listUsers, type Paginated, type Role, type UserRow } from '@/lib/api';
 import { SearchBar } from '@/components/search-bar';
 import { Pagination } from '@/components/pagination';
 import { RoleSelect, ActifToggle, SyncAdButton } from '@/components/user-admin-controls';
 
 export const metadata = { title: 'Utilisateurs — Kratos' };
 
+/** Rôles filtrables, dans l'ordre hiérarchique d'affichage. */
+const ROLES_FILTRE: { value: Role; label: string }[] = [
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'DIRECTION', label: 'Direction' },
+  { value: 'DIRECTEUR_REGIONAL', label: 'Dir. régional' },
+  { value: 'CHEF_SECTEUR', label: 'Chef de secteur' },
+  { value: 'COMMERCIAL', label: 'Commercial' },
+  { value: 'ADV', label: 'ADV' },
+  { value: 'MARKETING', label: 'Marketing' },
+];
+
+const chip = 'rounded-full border px-3 py-1 text-xs font-medium transition';
+const chipOff =
+  'border-neutral-200 text-neutral-600 hover:bg-neutral-100 dark:border-navy-700 dark:text-neutral-300 dark:hover:bg-navy-800';
+const chipOn = 'border-brand bg-brand text-white dark:border-accent dark:bg-accent dark:text-brand';
+
 export default async function UtilisateursPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string }>;
+  searchParams: Promise<{ search?: string; page?: string; role?: string }>;
 }) {
   const me = await getMe();
   if (!me) redirect('/login');
@@ -25,14 +42,24 @@ export default async function UtilisateursPage({
   const sp = await searchParams;
   const search = sp.search ?? '';
   const page = Number(sp.page ?? '1') || 1;
+  const role = ROLES_FILTRE.some((r) => r.value === sp.role) ? (sp.role as Role) : undefined;
 
   let result: Paginated<UserRow> | null = null;
   let error: string | null = null;
   try {
-    result = await listUsers({ search, page });
+    result = await listUsers({ search, page, role });
   } catch {
     error = "Impossible de charger les utilisateurs. L'API est-elle démarrée ?";
   }
+
+  /** URL de la page avec un autre filtre de rôle (recherche conservée, pagination remise à 1). */
+  const avecRole = (r?: Role) => {
+    const q = new URLSearchParams();
+    if (search) q.set('search', search);
+    if (r) q.set('role', r);
+    const s = q.toString();
+    return s ? `/utilisateurs?${s}` : '/utilisateurs';
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -47,6 +74,19 @@ export default async function UtilisateursPage({
           <SearchBar placeholder="Login, nom, email…" />
           <SyncAdButton />
         </div>
+      </div>
+
+      {/* Filtre par rôle (côté API : GET /users?role=). */}
+      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-white p-3 shadow-card">
+        <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Rôle</span>
+        <Link href={avecRole()} className={`${chip} ${role === undefined ? chipOn : chipOff}`}>
+          Tous
+        </Link>
+        {ROLES_FILTRE.map((r) => (
+          <Link key={r.value} href={avecRole(r.value)} className={`${chip} ${role === r.value ? chipOn : chipOff}`}>
+            {r.label}
+          </Link>
+        ))}
       </div>
 
       {error ? (
@@ -120,7 +160,12 @@ export default async function UtilisateursPage({
               </tbody>
             </table>
           </div>
-          <Pagination total={result!.total} page={result!.page} limit={result!.limit} params={{ search }} />
+          <Pagination
+            total={result!.total}
+            page={result!.page}
+            limit={result!.limit}
+            params={{ search, ...(role ? { role } : {}) }}
+          />
         </>
       )}
     </div>
