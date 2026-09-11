@@ -5,8 +5,9 @@ import { RefreshCw } from 'lucide-react';
 import { majUtilisateur, lancerSyncAd, type SyncAdResult } from '@/lib/admin-actions';
 import type { Role } from '@/lib/api';
 
+// Vocabulaire métier ABC : le rôle technique COMMERCIAL s'affiche « Promoteur ».
 const ROLES: { value: Role; label: string }[] = [
-  { value: 'COMMERCIAL', label: 'Commercial' },
+  { value: 'COMMERCIAL', label: 'Promoteur' },
   { value: 'CHEF_SECTEUR', label: 'Chef de secteur' },
   { value: 'DIRECTEUR_REGIONAL', label: 'Directeur régional' },
   { value: 'DIRECTION', label: 'Direction' },

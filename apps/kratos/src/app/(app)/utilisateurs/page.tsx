@@ -13,7 +13,7 @@ const ROLES_FILTRE: { value: Role; label: string }[] = [
   { value: 'DIRECTION', label: 'Direction' },
   { value: 'DIRECTEUR_REGIONAL', label: 'Dir. régional' },
   { value: 'CHEF_SECTEUR', label: 'Chef de secteur' },
-  { value: 'COMMERCIAL', label: 'Commercial' },
+  { value: 'COMMERCIAL', label: 'Promoteur' },
   { value: 'ADV', label: 'ADV' },
   { value: 'MARKETING', label: 'Marketing' },
 ];
