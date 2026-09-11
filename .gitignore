@@ -41,3 +41,6 @@ coverage/
 
 # Claude Code — réglages locaux machine (le reste de .claude/ peut être versionné)
 .claude/settings.local.json
+
+# Logs pm2
+logs/
