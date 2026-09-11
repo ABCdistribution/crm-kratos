@@ -1,9 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface CreationVisite {
   idApk: string;
-  clientId: string;
+  clientId?: string | null; // exactement un de clientId / prospectId
+  prospectId?: string | null;
   planningId?: string | null;
   motif?: string | null;
   dnAbc?: number | null;
@@ -78,10 +79,21 @@ export class VisitesService {
       return { id: existante.id, idApk: dto.idApk, dejaSynchronisee: true };
     }
 
-    const client = await this.prisma.client.findFirst({
-      where: { id: dto.clientId, deletedAt: null },
-    });
-    if (!client) throw new NotFoundException(`Magasin ${dto.clientId} introuvable`);
+    // Visite magasin OU visite de prospection — exactement l'un des deux.
+    if (Boolean(dto.clientId) === Boolean(dto.prospectId)) {
+      throw new BadRequestException('Fournir exactement un des deux : clientId ou prospectId');
+    }
+    if (dto.clientId) {
+      const client = await this.prisma.client.findFirst({
+        where: { id: dto.clientId, deletedAt: null },
+      });
+      if (!client) throw new NotFoundException(`Magasin ${dto.clientId} introuvable`);
+    } else {
+      const prospect = await this.prisma.prospect.findFirst({
+        where: { id: dto.prospectId!, deletedAt: null },
+      });
+      if (!prospect) throw new NotFoundException(`Prospect ${dto.prospectId} introuvable`);
+    }
 
     // La visite peut solder une visite planifiée — uniquement celle du promoteur.
     let planningId: string | null = null;
@@ -112,7 +124,8 @@ export class VisitesService {
       const creee = await tx.visite.create({
         data: {
           promoteurId: promoteur.id,
-          clientId: dto.clientId,
+          clientId: dto.clientId ?? null,
+          prospectId: dto.prospectId ?? null,
           idApk: dto.idApk,
           motif: dto.motif?.trim() || null,
           dnAbc: dto.dnAbc ?? null,
@@ -132,6 +145,9 @@ export class VisitesService {
       }
       if (planningId) {
         await tx.planning.update({ where: { id: planningId }, data: { fait: true } });
+      }
+      if (dto.prospectId) {
+        await tx.prospect.update({ where: { id: dto.prospectId }, data: { lastActivityAt: new Date() } });
       }
       return creee;
     });

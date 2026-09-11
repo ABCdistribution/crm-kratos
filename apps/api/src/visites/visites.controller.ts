@@ -35,16 +35,26 @@ class CreateVisiteDto {
   @MaxLength(64)
   idApk!: string;
 
-  @ApiProperty({ description: 'UUID du magasin visité' })
+  @ApiPropertyOptional({
+    description: 'UUID du magasin visité — exactement un de clientId / prospectId',
+  })
+  @IsOptional()
   @IsUUID()
-  clientId!: string;
+  clientId?: string;
+
+  @ApiPropertyOptional({
+    description: 'UUID du prospect visité (visite de prospection) — exactement un de clientId / prospectId',
+  })
+  @IsOptional()
+  @IsUUID()
+  prospectId?: string;
 
   @ApiPropertyOptional({ description: 'Visite planifiée soldée par ce compte-rendu' })
   @IsOptional()
   @IsUUID()
   planningId?: string;
 
-  @ApiPropertyOptional({ example: 'Planifiée', description: 'Planifiée · Appel client · Passage opportunité · Urgence…' })
+  @ApiPropertyOptional({ example: 'Planifiée', description: 'Planifiée · Appel client · Passage opportunité · Urgence · Prospection…' })
   @IsOptional()
   @IsString()
   @MaxLength(60)

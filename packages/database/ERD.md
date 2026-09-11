@@ -55,6 +55,54 @@ NOMBRE NOMBRE
 NOTE_1_5 NOTE_1_5
         }
     
+
+
+        PipelineEtape {
+            NOUVEAU NOUVEAU
+CONTACTE CONTACTE
+QUALIFIE QUALIFIE
+PROPOSITION PROPOSITION
+NEGOCIATION NEGOCIATION
+GAGNE GAGNE
+PERDU PERDU
+        }
+    
+
+
+        SourceProspect {
+            SALON SALON
+RECOMMANDATION RECOMMANDATION
+TERRAIN TERRAIN
+WEB WEB
+        }
+    
+
+
+        MotifPerteProspect {
+            PRIX PRIX
+CONCURRENCE CONCURRENCE
+PAS_DE_BESOIN PAS_DE_BESOIN
+SANS_REPONSE SANS_REPONSE
+AUTRE AUTRE
+        }
+    
+
+
+        TypeOpportunite {
+            REFERENCEMENT REFERENCEMENT
+OP OP
+MISE_EN_AVANT MISE_EN_AVANT
+        }
+    
+
+
+        StatutOpportunite {
+            OUVERTE OUVERTE
+GAGNEE GAGNEE
+PERDUE PERDUE
+ANNULEE ANNULEE
+        }
+    
   "users" {
     String id "🗝️"
     String username 
@@ -433,6 +481,42 @@ NOTE_1_5 NOTE_1_5
     }
   
 
+  "prospects" {
+    String id "🗝️"
+    String raisonSociale 
+    String enseigne 
+    String adresse1 "❓"
+    String codePostal "❓"
+    String ville "❓"
+    String telephone "❓"
+    String email "❓"
+    PipelineEtape statut 
+    Int probabilite 
+    Decimal potentielCaAnnuel "❓"
+    SourceProspect source "❓"
+    MotifPerteProspect motifPerte "❓"
+    String idApk "❓"
+    DateTime lastActivityAt 
+    DateTime createdAt 
+    DateTime updatedAt 
+    DateTime deletedAt "❓"
+    }
+  
+
+  "opportunites" {
+    String id "🗝️"
+    TypeOpportunite type 
+    String libelle "❓"
+    Decimal valeurEstimee "❓"
+    StatutOpportunite statut 
+    DateTime dateDebut "❓"
+    DateTime dateFin "❓"
+    DateTime createdAt 
+    DateTime updatedAt 
+    DateTime deletedAt "❓"
+    }
+  
+
   "minos_import_logs" {
     String id "🗝️"
     String fileName 
@@ -481,9 +565,11 @@ NOTE_1_5 NOTE_1_5
     "clients" }o--|o centrales : "centrale"
     "clients" }o--|o users : "creePar"
     "centrales" |o--|o centrales : "parent"
-    "client_contacts" }o--|| clients : "client"
+    "client_contacts" }o--|o clients : "client"
+    "client_contacts" }o--|o prospects : "prospect"
     "client_contacts" }o--|o users : "creePar"
-    "client_notes" }o--|| clients : "client"
+    "client_notes" }o--|o clients : "client"
+    "client_notes" }o--|o prospects : "prospect"
     "client_notes" }o--|o users : "auteur"
     "client_periodicites" }o--|| clients : "client"
     "client_periodicites" }o--|| periodicites : "periodicite"
@@ -493,6 +579,7 @@ NOTE_1_5 NOTE_1_5
     "articles" }o--|o marques : "marque"
     "articles" }o--|o gammes : "gamme"
     "articles" }o--|o familles : "famille"
+    "articles" o{--}o "opportunites" : ""
     "tarifs" }o--|| articles : "article"
     "article_switchs" }o--|| articles : "article"
     "article_switchs" }o--|| articles : "cible"
@@ -502,7 +589,8 @@ NOTE_1_5 NOTE_1_5
     "strat_pem_lignes" }o--|| strat_pems : "stratPem"
     "strat_pem_lignes" }o--|o articles : "article"
     "visites" }o--|| users : "promoteur"
-    "visites" }o--|| clients : "client"
+    "visites" }o--|o clients : "client"
+    "visites" }o--|o prospects : "prospect"
     "visites" |o--|o visites : "visiteLiee"
     "visite_dns" }o--|| visites : "visite"
     "visite_dns" |o--|| "TypeDn" : "enum:type"
@@ -528,6 +616,18 @@ NOTE_1_5 NOTE_1_5
     "commandes_apk" }o--|| clients : "client"
     "commande_apk_lignes" }o--|| commandes_apk : "commandeApk"
     "commande_apk_lignes" }o--|| articles : "article"
+    "prospects" }o--|o secteurs : "secteur"
+    "prospects" }o--|o users : "assignedTo"
+    "prospects" }o--|o users : "createdBy"
+    "prospects" |o--|| "PipelineEtape" : "enum:statut"
+    "prospects" |o--|o "SourceProspect" : "enum:source"
+    "prospects" |o--|o "MotifPerteProspect" : "enum:motifPerte"
+    "prospects" |o--|o clients : "client"
+    "opportunites" |o--|| "TypeOpportunite" : "enum:type"
+    "opportunites" }o--|o prospects : "prospect"
+    "opportunites" }o--|o clients : "client"
+    "opportunites" |o--|| "StatutOpportunite" : "enum:statut"
+    "opportunites" }o--|o users : "assignedTo"
     "minos_import_logs" |o--|| "ImportSource" : "enum:source"
     "minos_import_logs" |o--|| "ImportStatus" : "enum:status"
     "objectifs" }o--|| clients : "client"

@@ -17,6 +17,7 @@ import { VisitesModule } from './visites/visites.module';
 import { QuestionnaireModule } from './questionnaire/questionnaire.module';
 import { PromosModule } from './promos/promos.module';
 import { ImportModule } from './import/import.module';
+import { ProspectionModule } from './prospection/prospection.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { HealthModule } from './health/health.module';
     VisitesModule,
     QuestionnaireModule,
     PromosModule,
+    ProspectionModule,
     ImportModule,
     HealthModule,
   ],

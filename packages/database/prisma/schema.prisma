@@ -72,6 +72,51 @@ enum TypeQuestion {
   NOTE_1_5
 }
 
+// --- Prospection & pipeline (module Helios) ----------------------------
+
+/// Étape du pipeline commercial d'un prospect. Valeurs proposées (à valider métier).
+enum PipelineEtape {
+  NOUVEAU
+  CONTACTE
+  QUALIFIE
+  PROPOSITION
+  NEGOCIATION
+  GAGNE
+  PERDU
+}
+
+/// Origine d'un prospect. Valeurs proposées (à valider métier).
+enum SourceProspect {
+  SALON
+  RECOMMANDATION
+  TERRAIN
+  WEB
+}
+
+/// Motif de perte d'un prospect (statut PERDU). Valeurs proposées (à valider métier).
+enum MotifPerteProspect {
+  PRIX
+  CONCURRENCE
+  PAS_DE_BESOIN
+  SANS_REPONSE
+  AUTRE
+}
+
+/// Type d'opportunité commerciale.
+enum TypeOpportunite {
+  REFERENCEMENT
+  OP
+  MISE_EN_AVANT
+}
+
+/// Cycle de vie d'une opportunité.
+enum StatutOpportunite {
+  OUVERTE
+  GAGNEE
+  PERDUE
+  ANNULEE
+}
+
 // --- Modèles -----------------------------------------------------------
 
 /// Utilisateur applicatif, provisionné depuis Azure AD.
@@ -124,6 +169,11 @@ model User {
   tournees        Tournee[]
   commandesApk    CommandeApk[]
 
+  // Prospection
+  prospectsAssignes     Prospect[]    @relation("ProspectsAssignes")
+  prospectsCrees        Prospect[]    @relation("ProspectsCrees")
+  opportunitesAssignees Opportunite[] @relation("OpportunitesAssignees")
+
   // Notifications
   notificationsRecues Notification[] @relation("NotificationsRecues")
   notificationsEmises Notification[] @relation("NotificationsEmises")
@@ -170,6 +220,9 @@ model Secteur {
 
   // Clients du secteur.
   clients Client[]
+
+  // Prospects du secteur (pipeline de prospection).
+  prospects Prospect[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -250,6 +303,10 @@ model Client {
   commandes    Commande[]
   commandesApk CommandeApk[]
 
+  // Prospection : prospect d'origine (si converti) et opportunités portées.
+  prospectOrigine Prospect?     @relation("ProspectConverti")
+  opportunites    Opportunite[]
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // soft-delete
@@ -296,8 +353,11 @@ model Periodicite {
 /// Contact d'un magasin (ex-`ref_client_contact`). Colonne morte `login_createur` écartée.
 model ClientContact {
   id        String  @id @default(uuid()) @db.Uuid
-  clientId  String  @db.Uuid
-  client    Client  @relation(fields: [clientId], references: [id])
+  // Magasin OU prospect — exactement l'un des deux (CHECK en base).
+  clientId   String?   @db.Uuid
+  client     Client?   @relation(fields: [clientId], references: [id])
+  prospectId String?   @db.Uuid
+  prospect   Prospect? @relation(fields: [prospectId], references: [id])
   prenom    String?
   nom       String
   poste     String?
@@ -314,6 +374,7 @@ model ClientContact {
   deletedAt DateTime?
 
   @@index([clientId])
+  @@index([prospectId])
   @@index([creeParId])
   @@map("client_contacts")
 }
@@ -321,8 +382,11 @@ model ClientContact {
 /// Note terrain sur un client (ex-`ref_client_remarque`, saisie mobile).
 model ClientNote {
   id       String  @id @default(uuid()) @db.Uuid
-  clientId String  @db.Uuid
-  client   Client  @relation(fields: [clientId], references: [id])
+  // Magasin OU prospect — exactement l'un des deux (CHECK en base).
+  clientId   String?   @db.Uuid
+  client     Client?   @relation(fields: [clientId], references: [id])
+  prospectId String?   @db.Uuid
+  prospect   Prospect? @relation(fields: [prospectId], references: [id])
   remarque String
   idApk    String? // identifiant de la saisie mobile
 
@@ -334,6 +398,7 @@ model ClientNote {
   deletedAt DateTime?
 
   @@index([clientId])
+  @@index([prospectId])
   @@index([auteurId])
   @@map("client_notes")
 }
@@ -457,6 +522,7 @@ model Article {
   visitePromos      VisitePromo[]
   commandeLignes    CommandeLigne[]
   commandeApkLignes CommandeApkLigne[]
+  opportunites      Opportunite[]      @relation("OpportuniteArticles")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -575,8 +641,11 @@ model Visite {
   id          String  @id @default(uuid()) @db.Uuid
   promoteurId String  @db.Uuid
   promoteur   User    @relation(fields: [promoteurId], references: [id])
-  clientId    String  @db.Uuid
-  client      Client  @relation(fields: [clientId], references: [id])
+  // Magasin visité OU prospect visité — exactement l'un des deux (CHECK en base).
+  clientId    String?   @db.Uuid
+  client      Client?   @relation(fields: [clientId], references: [id])
+  prospectId  String?   @db.Uuid
+  prospect    Prospect? @relation(fields: [prospectId], references: [id])
   idApk       String? @unique // identifiant généré côté mobile — clé d'idempotence de la sync
 
   // Motif de la saisie (planifiée, appel client, passage d'opportunité, urgence…).
@@ -611,6 +680,7 @@ model Visite {
 
   @@index([promoteurId])
   @@index([clientId])
+  @@index([prospectId])
   @@index([visiteLieeId])
   @@map("visites")
 }
@@ -869,6 +939,92 @@ model CommandeApkLigne {
   @@unique([commandeApkId, ordre])
   @@index([articleId])
   @@map("commande_apk_lignes")
+}
+
+// --- Prospection & pipeline (module Helios) ----------------------------
+
+/// Point de vente pas encore client. Se convertit en Client quand il est gagné
+/// (POST /prospects/:id/convert) — `clientId` est alors posé et le statut passe à GAGNE.
+model Prospect {
+  id            String  @id @default(uuid()) @db.Uuid
+  raisonSociale String
+  enseigne      String
+  adresse1      String?
+  codePostal    String?
+  ville         String?
+  telephone     String?
+  email         String?
+
+  // Territoire — base du scoping (CS : ses secteurs ; DR : sa région).
+  secteurId String?  @db.Uuid
+  secteur   Secteur? @relation(fields: [secteurId], references: [id])
+
+  // Chef de secteur responsable + créateur.
+  assignedToId String? @db.Uuid
+  assignedTo   User?   @relation("ProspectsAssignes", fields: [assignedToId], references: [id])
+  createdById  String? @db.Uuid
+  createdBy    User?   @relation("ProspectsCrees", fields: [createdById], references: [id])
+
+  statut            PipelineEtape       @default(NOUVEAU)
+  probabilite       Int                 @default(10) // % — défaut selon l'étape
+  potentielCaAnnuel Decimal?            @db.Decimal(14, 2)
+  source            SourceProspect?
+  motifPerte        MotifPerteProspect? // renseigné si statut = PERDU
+
+  // Rempli à la conversion (un client provient d'au plus un prospect).
+  clientId String? @unique @db.Uuid
+  client   Client? @relation("ProspectConverti", fields: [clientId], references: [id])
+
+  idApk String? @unique // clé d'idempotence de la création offline (mobile)
+
+  // Satellites réutilisés du modèle client (contact/note : client OU prospect).
+  contacts     ClientContact[]
+  notes        ClientNote[]
+  visites      Visite[]
+  opportunites Opportunite[]
+
+  lastActivityAt DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  @@index([secteurId])
+  @@index([assignedToId])
+  @@index([statut])
+  @@map("prospects")
+}
+
+/// Opportunité commerciale (référencement, OP, mise en avant) — portée par un
+/// prospect OU un client existant (exactement l'un des deux).
+model Opportunite {
+  id   String          @id @default(uuid()) @db.Uuid
+  type TypeOpportunite
+
+  prospectId String?   @db.Uuid
+  prospect   Prospect? @relation(fields: [prospectId], references: [id])
+  clientId   String?   @db.Uuid
+  client     Client?   @relation(fields: [clientId], references: [id])
+
+  // Produits visés.
+  articles Article[] @relation("OpportuniteArticles")
+
+  libelle       String?
+  valeurEstimee Decimal?          @db.Decimal(14, 2)
+  statut        StatutOpportunite @default(OUVERTE)
+  dateDebut     DateTime? // période OP / mise en avant
+  dateFin       DateTime?
+
+  assignedToId String? @db.Uuid
+  assignedTo   User?   @relation("OpportunitesAssignees", fields: [assignedToId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([prospectId])
+  @@index([clientId])
+  @@index([statut])
+  @@map("opportunites")
 }
 
 // --- Système -----------------------------------------------------------
