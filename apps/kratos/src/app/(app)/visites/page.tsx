@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Camera, Star } from 'lucide-react';
-import { listVisites, type Paginated, type VisiteRow } from '@/lib/api';
+import { listVisites, type VisitesResult } from '@/lib/api';
 import { SearchBar } from '@/components/search-bar';
 import { Pagination } from '@/components/pagination';
 
@@ -21,7 +21,7 @@ export default async function VisitesPage({
   const search = sp.search ?? '';
   const page = Number(sp.page ?? '1') || 1;
 
-  let result: Paginated<VisiteRow> | null = null;
+  let result: VisitesResult | null = null;
   let error: string | null = null;
   try {
     result = await listVisites({ search, page });
@@ -29,13 +29,17 @@ export default async function VisitesPage({
     error = "Impossible de charger les visites. L'API est-elle démarrée ?";
   }
 
+  const mine = result?.scope?.type !== 'global';
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Historique de visites</h1>
+          <h1 className="text-2xl font-bold">{mine ? 'Historique de visites' : 'Visites'}</h1>
           <p className="text-sm text-neutral-500">
-            Tes comptes-rendus terrain passés : relevé DN, PEM, photos — saisis sur l&apos;app mobile.
+            {mine
+              ? 'Tes comptes-rendus terrain passés : relevé DN, PEM, photos — saisis sur l’app mobile.'
+              : 'Les comptes-rendus terrain de toute la force de vente : relevé DN, PEM, photos.'}
           </p>
         </div>
         <SearchBar placeholder="Magasin, ville, code…" />
@@ -73,6 +77,7 @@ export default async function VisitesPage({
                   ) : null}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
+                  {!mine && v.promoteur ? <span className="font-medium">{v.promoteur.displayName}</span> : null}
                   {v.motif ? <span>{v.motif}</span> : null}
                   <span>
                     DN <span className="font-semibold text-brand dark:text-accent">{v.dnAbc ?? '—'}</span>
@@ -92,6 +97,7 @@ export default async function VisitesPage({
               <thead className="border-b border-neutral-100 text-left text-[11px] uppercase tracking-wider text-neutral-400 dark:border-navy-700">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Magasin</th>
+                  {!mine ? <th className="px-4 py-2.5 font-medium">Promoteur</th> : null}
                   <th className="px-4 py-2.5 font-medium">Date</th>
                   <th className="px-4 py-2.5 font-medium">Motif</th>
                   <th className="px-4 py-2.5 text-right font-medium">DN ABC</th>
@@ -110,6 +116,11 @@ export default async function VisitesPage({
                       <div className="font-medium text-brand dark:text-accent">{v.client?.enseigne ?? '—'}</div>
                       <div className="text-[11px] text-neutral-400">{v.client?.ville ?? ''}</div>
                     </td>
+                    {!mine ? (
+                      <td className="px-4 py-3 text-neutral-600 dark:text-neutral-300">
+                        {v.promoteur?.displayName ?? '—'}
+                      </td>
+                    ) : null}
                     <td className="px-4 py-3">
                       <div>{DATE.format(new Date(v.createdAt))}</div>
                       <div className="text-[11px] text-neutral-400">il y a {jours(v.createdAt)} j</div>

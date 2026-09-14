@@ -87,13 +87,17 @@ export class VisitesController {
   constructor(private readonly visites: VisitesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Mes visites (les plus récentes), paginées — scopé sur le promoteur connecté' })
+  @ApiOperation({
+    summary:
+      'Visites paginées — un commercial voit les siennes, les autres rôles (ADV, direction, CS, DR…) voient toutes les visites',
+  })
   findAll(
     @Query('page') page: string | undefined,
     @Query('search') search: string | undefined,
     @CurrentUser() me: User,
   ) {
-    return this.visites.findAll(me.id, { page: Number(page) || 1, search });
+    const promoteurId = me.role === 'COMMERCIAL' ? me.id : null;
+    return this.visites.findAll(promoteurId, { page: Number(page) || 1, search });
   }
 
   @Post()

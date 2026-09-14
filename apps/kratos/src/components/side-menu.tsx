@@ -29,39 +29,42 @@ type Leaf = { href: string; label: string; icon: LucideIcon; roles?: string[] };
 type Section = { label: string | null; children: Leaf[] };
 
 /**
- * Navigation kratos — l'espace web du commercial, scopé « mon périmètre ».
+ * Navigation kratos. Les libellés s'adaptent au rôle : un commercial voit SON
+ * périmètre (« Mes magasins »…), les rôles siège (ADV, direction, marketing,
+ * admin…) utilisent kratos comme outil universel sur tous les référentiels.
  * Libellés toujours visibles (pas de survol nécessaire).
- * (Gestion utilisateurs, imports ERP, planification des tournées et stats équipe
- *  vivent dans helios, pas ici.)
  */
-const SECTIONS: Section[] = [
-  { label: null, children: [{ href: '/', label: 'Accueil', icon: Home }] },
-  {
-    label: 'Mon terrain',
-    children: [
-      { href: '/clients', label: 'Mes magasins', icon: Store },
-      { href: '/tournees', label: 'Mon agenda', icon: CalendarDays },
-      { href: '/visites', label: 'Historique de visites', icon: Footprints },
-      { href: '/commandes', label: 'Mes commandes', icon: ShoppingCart },
-    ],
-  },
-  {
-    label: 'Catalogue',
-    children: [
-      { href: '/produits', label: 'Produits', icon: Package },
-      { href: '/promos', label: 'Promos / PEM', icon: BadgePercent },
-      { href: '/qualite', label: 'Qualité & rappels', icon: ShieldAlert },
-    ],
-  },
-  {
-    label: 'Moi',
-    children: [{ href: '/parametres', label: 'Paramètres', icon: Settings }],
-  },
-  {
-    label: 'Administration',
-    children: [{ href: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['ADMIN'] }],
-  },
-];
+function sections(role: string): Section[] {
+  const moi = role === 'COMMERCIAL';
+  return [
+    { label: null, children: [{ href: '/', label: 'Accueil', icon: Home }] },
+    {
+      label: moi ? 'Mon terrain' : 'Terrain',
+      children: [
+        { href: '/clients', label: moi ? 'Mes magasins' : 'Magasins', icon: Store },
+        { href: '/tournees', label: moi ? 'Mon agenda' : 'Agenda', icon: CalendarDays },
+        { href: '/visites', label: moi ? 'Historique de visites' : 'Visites', icon: Footprints },
+        { href: '/commandes', label: moi ? 'Mes commandes' : 'Commandes', icon: ShoppingCart },
+      ],
+    },
+    {
+      label: 'Catalogue',
+      children: [
+        { href: '/produits', label: 'Produits', icon: Package },
+        { href: '/promos', label: 'Promos / PEM', icon: BadgePercent },
+        { href: '/qualite', label: 'Qualité & rappels', icon: ShieldAlert },
+      ],
+    },
+    {
+      label: 'Moi',
+      children: [{ href: '/parametres', label: 'Paramètres', icon: Settings }],
+    },
+    {
+      label: 'Administration',
+      children: [{ href: '/utilisateurs', label: 'Utilisateurs', icon: Users, roles: ['ADMIN'] }],
+    },
+  ];
+}
 
 function isActive(pathname: string, href: string) {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
@@ -93,7 +96,7 @@ function MenuPanel({
     <>
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        {SECTIONS.map((section, i) => {
+        {sections(me.role).map((section, i) => {
           const children = section.children.filter((c) => !c.roles || c.roles.includes(me.role));
           if (children.length === 0) return null;
           return (

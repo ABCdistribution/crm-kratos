@@ -397,12 +397,15 @@ export type VisiteRow = {
   pem: boolean;
   pmcCommentaire: string | null;
   client: { id: string; codeAs400: string; enseigne: string; ville: string | null; niveauClass: string | null } | null;
+  promoteur: { id: string; displayName: string; idRepr: string | null } | null;
   _count: { photos: number };
 };
 
-/** Mes visites (les plus récentes), paginées. */
-export function listVisites(params: { search?: string; page?: number }) {
-  return list<VisiteRow>(`/visites${qs({ ...params })}`);
+export type VisitesResult = Paginated<VisiteRow> & { scope?: { type: 'mine' | 'global' } };
+
+/** Visites paginées — les siennes pour un commercial, toutes pour les rôles siège. */
+export async function listVisites(params: { search?: string; page?: number }): Promise<VisitesResult> {
+  return (await list<VisiteRow>(`/visites${qs({ ...params })}`)) as VisitesResult;
 }
 
 export function listArticles(params: { search?: string; page?: number; rappel?: boolean }) {

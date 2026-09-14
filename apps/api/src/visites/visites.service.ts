@@ -23,12 +23,16 @@ export interface CreationVisite {
 export class VisitesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Visites du promoteur connecté, les plus récentes d'abord (paginées). */
-  async findAll(promoteurId: string, opts: { page?: number; search?: string } = {}) {
+  /**
+   * Visites paginées, les plus récentes d'abord. `promoteurId` null = vue
+   * globale (rôles siège : ADV, direction, marketing, admin…) ; sinon la vue
+   * est scopée sur ce promoteur (cas du commercial connecté).
+   */
+  async findAll(promoteurId: string | null, opts: { page?: number; search?: string } = {}) {
     const page = opts.page && opts.page > 0 ? opts.page : 1;
     const limit = 30;
     const where = {
-      promoteurId,
+      ...(promoteurId ? { promoteurId } : {}),
       deletedAt: null,
       ...(opts.search
         ? {
@@ -60,13 +64,20 @@ export class VisitesService {
           pem: true,
           pmcCommentaire: true,
           client: { select: { id: true, codeAs400: true, enseigne: true, ville: true, niveauClass: true } },
+          promoteur: { select: { id: true, displayName: true, idRepr: true } },
           _count: { select: { photos: true } },
         },
       }),
       this.prisma.visite.count({ where }),
     ]);
 
-    return { data: rows, total, page, limit };
+    return {
+      data: rows,
+      total,
+      page,
+      limit,
+      scope: promoteurId ? ({ type: 'mine' } as const) : ({ type: 'global' } as const),
+    };
   }
 
   async create(promoteur: { id: string }, dto: CreationVisite) {
