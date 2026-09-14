@@ -1,13 +1,16 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { User } from '@crm/database';
+import { Role, User } from '@crm/database';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CommandesService } from './commandes.service';
 import { CommandesApkService } from './commandes-apk.service';
 import { CreateCommandeApkDto } from './dto/create-commande-apk.dto';
 import { QueryCommandesDto } from './dto/query-commandes.dto';
 import { QueryCommandesApkDto } from './dto/query-commandes-apk.dto';
+import { UpdateLivraisonDto } from './dto/update-livraison.dto';
 
 @ApiTags('commandes')
 @ApiBearerAuth()
@@ -54,8 +57,19 @@ export class CommandesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Détail d'une commande avec ses lignes" })
+  @ApiOperation({ summary: "Détail d'une commande avec ses lignes et son suivi de livraison" })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.commandes.findOne(id);
+  }
+
+  @Patch(':id/livraison')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADV, Role.DIRECTION, Role.ADMIN)
+  @ApiOperation({
+    summary:
+      'Mettre à jour le suivi de livraison (ADV · Direction · ADMIN) — EXPEDIEE/LIVREE posent les dates si absentes ; refusé sur une commande annulée',
+  })
+  updateLivraison(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLivraisonDto) {
+    return this.commandes.updateLivraison(id, dto);
   }
 }

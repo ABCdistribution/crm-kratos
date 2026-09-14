@@ -1,18 +1,23 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Store, ShoppingCart, Smartphone } from 'lucide-react';
-import { getCommande } from '@/lib/api';
+import { ArrowLeft, Store, ShoppingCart, Smartphone, Truck } from 'lucide-react';
+import { getCommande, getMe } from '@/lib/api';
+import { LivraisonBadge } from '@/components/livraison-badge';
+import { LivraisonEditor } from '@/components/livraison-editor';
 
 export const metadata = { title: 'Commande — Kratos' };
 
 const EUR = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 const QTE = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 const DATE_FMT = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const DATE_COURT = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 
 export default async function CommandeDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const commande = await getCommande(id);
+  const [commande, me] = await Promise.all([getCommande(id), getMe()]);
   if (!commande) notFound();
+  // L'ADV (et direction/admin) tient le suivi de livraison à jour.
+  const peutEditerLivraison = !!me && ['ADV', 'DIRECTION', 'ADMIN'].includes(me.role);
 
   return (
     <div className="flex flex-col gap-5">
@@ -36,6 +41,7 @@ export default async function CommandeDetail({ params }: { params: Promise<{ id:
               ) : (
                 <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600">Validée</span>
               )}
+              <LivraisonBadge statut={commande.statutLivraison} annulee={commande.annulee} />
               {commande.typeCmd ? (
                 <span className="rounded bg-neutral-100 px-2 py-0.5 font-mono text-xs text-neutral-500 dark:bg-navy-800">
                   Type {commande.typeCmd}
@@ -83,6 +89,49 @@ export default async function CommandeDetail({ params }: { params: Promise<{ id:
           {commande.client?.ville ? <span className="text-sm text-neutral-400">· {commande.client.ville}</span> : null}
         </div>
       </div>
+
+      {/* Suivi de livraison */}
+      {!commande.annulee ? (
+        <section className="rounded-2xl bg-white shadow-card">
+          <h2 className="flex items-center gap-2 border-b border-neutral-100 px-5 py-3 font-semibold dark:border-navy-700">
+            <Truck size={17} className="text-brand" />
+            Livraison
+            <LivraisonBadge statut={commande.statutLivraison} />
+          </h2>
+          <div className="flex flex-col gap-4 px-5 py-4">
+            <div className="flex flex-wrap gap-x-8 gap-y-1.5 text-sm">
+              <span className="text-neutral-500">
+                Expédiée : <span className="font-medium text-neutral-800 dark:text-neutral-100">{commande.dateExpedition ? DATE_COURT.format(new Date(commande.dateExpedition)) : '—'}</span>
+              </span>
+              <span className="text-neutral-500">
+                Livrée : <span className="font-medium text-neutral-800 dark:text-neutral-100">{commande.dateLivraison ? DATE_COURT.format(new Date(commande.dateLivraison)) : '—'}</span>
+              </span>
+              {commande.transporteur ? (
+                <span className="text-neutral-500">
+                  Transporteur : <span className="font-medium text-neutral-800 dark:text-neutral-100">{commande.transporteur}</span>
+                </span>
+              ) : null}
+              {commande.noSuivi ? (
+                <span className="text-neutral-500">
+                  Suivi : <span className="font-mono text-xs font-medium text-neutral-800 dark:text-neutral-100">{commande.noSuivi}</span>
+                </span>
+              ) : null}
+            </div>
+            {commande.commentaireLivraison && !peutEditerLivraison ? (
+              <p className="text-sm text-neutral-500">{commande.commentaireLivraison}</p>
+            ) : null}
+            {peutEditerLivraison ? (
+              <LivraisonEditor
+                commandeId={commande.id}
+                statut={commande.statutLivraison}
+                transporteur={commande.transporteur}
+                noSuivi={commande.noSuivi}
+                commentaire={commande.commentaireLivraison}
+              />
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {/* Lignes */}
       <section className="rounded-2xl bg-white shadow-card">

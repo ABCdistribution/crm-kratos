@@ -109,6 +109,15 @@ enum TypeOpportunite {
   MISE_EN_AVANT
 }
 
+/// Suivi de livraison d'une commande ERP — géré dans le CRM (ADV) ;
+/// l'ERP pourra l'alimenter plus tard si un flux le porte.
+enum StatutLivraison {
+  EN_PREPARATION
+  EXPEDIEE
+  LIVREE_PARTIELLE
+  LIVREE
+}
+
 /// Cycle de vie d'une opportunité.
 enum StatutOpportunite {
   OUVERTE
@@ -870,6 +879,14 @@ model Commande {
   dateCommande     DateTime? // date de la commande (AAANN/MMANN/JJANN)
   dateAnnulation   DateTime? // checky/m/d renseigné = commande annulée
 
+  // --- Suivi de livraison (saisi par l'ADV ; sans objet si commande annulée) ---
+  statutLivraison      StatutLivraison @default(EN_PREPARATION)
+  dateExpedition       DateTime?
+  dateLivraison        DateTime?
+  transporteur         String?
+  noSuivi              String? // n° de suivi transporteur
+  commentaireLivraison String?
+
   lignes CommandeLigne[]
 
   createdAt DateTime @default(now())
@@ -877,6 +894,7 @@ model Commande {
 
   @@index([clientId])
   @@index([idCommandeApk])
+  @@index([statutLivraison])
   @@map("commandes")
 }
 

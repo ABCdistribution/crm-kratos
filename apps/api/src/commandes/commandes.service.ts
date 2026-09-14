@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@crm/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { idReprVariants } from '../common/id-repr.util';
 import { QueryCommandesDto } from './dto/query-commandes.dto';
+import { UpdateLivraisonDto } from './dto/update-livraison.dto';
 
 @Injectable()
 export class CommandesService {
@@ -19,6 +20,7 @@ export class CommandesService {
       // Équivalence AD (« 68 ») ↔ Minos (« 068 ») gérée à la comparaison.
       ...(mine ? { idRepr: { in: idReprVariants(mine) } } : {}),
       ...(query.annulees === 'true' ? { dateAnnulation: { not: null } } : {}),
+      ...(query.livraison ? { statutLivraison: query.livraison } : {}),
       ...(query.search
         ? {
             OR: [
@@ -43,6 +45,8 @@ export class CommandesService {
           typeCmd: true,
           dateCommande: true,
           dateAnnulation: true,
+          statutLivraison: true,
+          dateLivraison: true,
           raisonSocialeCmd: true,
           idRepr: true,
           client: { select: { id: true, codeAs400: true, enseigne: true } },
@@ -86,6 +90,12 @@ export class CommandesService {
         typeCmd: true,
         dateCommande: true,
         dateAnnulation: true,
+        statutLivraison: true,
+        dateExpedition: true,
+        dateLivraison: true,
+        transporteur: true,
+        noSuivi: true,
+        commentaireLivraison: true,
         raisonSocialeCmd: true,
         idRepr: true,
         idCommandeApk: true,
@@ -111,5 +121,54 @@ export class CommandesService {
       annulee: commande.dateAnnulation !== null,
       total: commande.lignes.reduce((s, l) => s + Number(l.montant), 0),
     };
+  }
+
+  /**
+   * Met à jour le suivi de livraison (ADV). Un passage à EXPEDIEE pose la
+   * date d'expédition si absente ; LIVREE / LIVREE_PARTIELLE posent la date
+   * de livraison si absente. Refusé sur une commande annulée.
+   */
+  async updateLivraison(id: string, dto: UpdateLivraisonDto) {
+    const commande = await this.prisma.commande.findUnique({
+      where: { id },
+      select: { id: true, dateAnnulation: true, dateExpedition: true, dateLivraison: true },
+    });
+    if (!commande) throw new NotFoundException(`Commande ${id} introuvable`);
+    if (commande.dateAnnulation) {
+      throw new BadRequestException('Commande annulée : le suivi de livraison est sans objet.');
+    }
+
+    const statut = dto.statutLivraison;
+    return this.prisma.commande.update({
+      where: { id },
+      data: {
+        ...(statut !== undefined ? { statutLivraison: statut } : {}),
+        ...(dto.dateExpedition !== undefined
+          ? { dateExpedition: new Date(dto.dateExpedition) }
+          : statut === 'EXPEDIEE' && !commande.dateExpedition
+            ? { dateExpedition: new Date() }
+            : {}),
+        ...(dto.dateLivraison !== undefined
+          ? { dateLivraison: new Date(dto.dateLivraison) }
+          : (statut === 'LIVREE' || statut === 'LIVREE_PARTIELLE') && !commande.dateLivraison
+            ? { dateLivraison: new Date() }
+            : {}),
+        ...(dto.transporteur !== undefined ? { transporteur: dto.transporteur?.trim() || null } : {}),
+        ...(dto.noSuivi !== undefined ? { noSuivi: dto.noSuivi?.trim() || null } : {}),
+        ...(dto.commentaireLivraison !== undefined
+          ? { commentaireLivraison: dto.commentaireLivraison?.trim() || null }
+          : {}),
+      },
+      select: {
+        id: true,
+        numero: true,
+        statutLivraison: true,
+        dateExpedition: true,
+        dateLivraison: true,
+        transporteur: true,
+        noSuivi: true,
+        commentaireLivraison: true,
+      },
+    });
   }
 }

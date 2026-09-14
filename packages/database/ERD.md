@@ -96,6 +96,15 @@ MISE_EN_AVANT MISE_EN_AVANT
     
 
 
+        StatutLivraison {
+            EN_PREPARATION EN_PREPARATION
+EXPEDIEE EXPEDIEE
+LIVREE_PARTIELLE LIVREE_PARTIELLE
+LIVREE LIVREE
+        }
+    
+
+
         StatutOpportunite {
             OUVERTE OUVERTE
 GAGNEE GAGNEE
@@ -447,6 +456,12 @@ ANNULEE ANNULEE
     String idCommandeApk "❓"
     DateTime dateCommande "❓"
     DateTime dateAnnulation "❓"
+    StatutLivraison statutLivraison 
+    DateTime dateExpedition "❓"
+    DateTime dateLivraison "❓"
+    String transporteur "❓"
+    String noSuivi "❓"
+    String commentaireLivraison "❓"
     DateTime createdAt 
     DateTime updatedAt 
     }
@@ -610,6 +625,7 @@ ANNULEE ANNULEE
     "tournees" }o--|| users : "promoteur"
     "tournees" }o--|| clients : "client"
     "commandes" }o--|o clients : "client"
+    "commandes" |o--|| "StatutLivraison" : "enum:statutLivraison"
     "commande_lignes" }o--|| commandes : "commande"
     "commande_lignes" }o--|o articles : "article"
     "commandes_apk" }o--|| users : "promoteur"

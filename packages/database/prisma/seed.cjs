@@ -503,6 +503,9 @@ async function main() {
       for (let k = 0; k < int(4, 10); k++) {
         numero += 1;
         const dateCommande = daysAgo(int(0, 420));
+        const ageJours = (Date.now() - dateCommande.getTime()) / 86_400_000;
+        // Suivi de livraison plausible selon l'ancienneté (LIVREE au-delà d'une semaine).
+        const statutLivraison = ageJours > 7 ? 'LIVREE' : ageJours > 2 ? 'EXPEDIEE' : 'EN_PREPARATION';
         const commande = await prisma.commande.create({
           data: {
             numero: `SEED${String(numero).padStart(6, '0')}`,
@@ -512,6 +515,9 @@ async function main() {
             typeCmd: pick(['CDE', 'CDE', 'CDE', 'AVR']),
             dateCommande,
             dateAnnulation: chance(0.05) ? new Date(dateCommande.getTime() + 2 * 24 * 3600 * 1000) : null,
+            statutLivraison,
+            dateExpedition: statutLivraison !== 'EN_PREPARATION' ? new Date(dateCommande.getTime() + 86_400_000) : null,
+            dateLivraison: statutLivraison === 'LIVREE' ? new Date(dateCommande.getTime() + 3 * 86_400_000) : null,
           },
         });
         const nbLignes = int(1, 6);

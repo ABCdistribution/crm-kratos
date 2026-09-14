@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { listCommandes, type CommandesResult } from '@/lib/api';
+import { listCommandes, type CommandesResult, type StatutLivraison } from '@/lib/api';
+import { LivraisonBadge, LIVRAISON } from '@/components/livraison-badge';
 import { SearchBar } from '@/components/search-bar';
 import { Pagination } from '@/components/pagination';
 
@@ -19,17 +20,30 @@ function StatutBadge({ annulee }: { annulee: boolean }) {
 export default async function CommandesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string; annulees?: string }>;
+  searchParams: Promise<{ search?: string; page?: string; annulees?: string; livraison?: string }>;
 }) {
   const sp = await searchParams;
   const search = sp.search ?? '';
   const page = Number(sp.page ?? '1') || 1;
   const annulees = sp.annulees === 'true';
+  const livraison = (Object.keys(LIVRAISON) as StatutLivraison[]).includes(sp.livraison as StatutLivraison)
+    ? (sp.livraison as StatutLivraison)
+    : undefined;
+
+  /** URL de la page avec un autre filtre de livraison (recherche conservée). */
+  const avecLivraison = (statut?: StatutLivraison) => {
+    const q = new URLSearchParams();
+    if (search) q.set('search', search);
+    if (annulees) q.set('annulees', 'true');
+    if (statut) q.set('livraison', statut);
+    const str = q.toString();
+    return str ? `/commandes?${str}` : '/commandes';
+  };
 
   let result: CommandesResult | null = null;
   let error: string | null = null;
   try {
-    result = await listCommandes({ search, page, annulees });
+    result = await listCommandes({ search, page, annulees, livraison });
   } catch {
     error = "Impossible de charger les commandes. L'API est-elle démarrée ?";
   }
@@ -63,6 +77,34 @@ export default async function CommandesPage({
         </div>
       </div>
 
+      {/* Filtre par statut de livraison (côté API : GET /commandes?livraison=). */}
+      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-white p-3 shadow-card">
+        <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Livraison</span>
+        <Link
+          href={avecLivraison()}
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+            livraison === undefined
+              ? 'border-brand bg-brand text-white dark:border-accent dark:bg-accent dark:text-brand'
+              : 'border-neutral-200 text-neutral-600 hover:bg-neutral-100 dark:border-navy-700 dark:text-neutral-300 dark:hover:bg-navy-800'
+          }`}
+        >
+          Toutes
+        </Link>
+        {(Object.keys(LIVRAISON) as StatutLivraison[]).map((statut) => (
+          <Link
+            key={statut}
+            href={avecLivraison(statut)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+              livraison === statut
+                ? 'border-brand bg-brand text-white dark:border-accent dark:bg-accent dark:text-brand'
+                : 'border-neutral-200 text-neutral-600 hover:bg-neutral-100 dark:border-navy-700 dark:text-neutral-300 dark:hover:bg-navy-800'
+            }`}
+          >
+            {LIVRAISON[statut].label}
+          </Link>
+        ))}
+      </div>
+
       {error ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
           {error}
@@ -81,7 +123,10 @@ export default async function CommandesPage({
                       {c.client ? c.client.enseigne : (c.raisonSocialeCmd ?? '—')}
                     </p>
                   </div>
-                  <StatutBadge annulee={c.annulee} />
+                  <span className="flex shrink-0 flex-col items-end gap-1">
+                    <StatutBadge annulee={c.annulee} />
+                    <LivraisonBadge statut={c.statutLivraison} annulee={c.annulee} />
+                  </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-500">
                   <span className="font-medium text-neutral-800 dark:text-accent">{EUR.format(c.total)}</span>
@@ -112,6 +157,7 @@ export default async function CommandesPage({
                   <th className="px-4 py-2.5 text-right font-medium">Lignes</th>
                   <th className="px-4 py-2.5 text-right font-medium">Total</th>
                   <th className="px-4 py-2.5 font-medium">Statut</th>
+                  <th className="px-4 py-2.5 font-medium">Livraison</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-navy-700">
@@ -148,11 +194,14 @@ export default async function CommandesPage({
                     <td className="px-4 py-2.5">
                       <StatutBadge annulee={c.annulee} />
                     </td>
+                    <td className="px-4 py-2.5">
+                      <LivraisonBadge statut={c.statutLivraison} annulee={c.annulee} />
+                    </td>
                   </tr>
                 ))}
                 {result!.data.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-neutral-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-neutral-400">
                       Aucune commande trouvée.
                     </td>
                   </tr>
@@ -164,7 +213,7 @@ export default async function CommandesPage({
             total={result!.total}
             page={result!.page}
             limit={result!.limit}
-            params={{ search, ...(annulees ? { annulees: 'true' } : {}) }}
+            params={{ search, ...(annulees ? { annulees: 'true' } : {}), ...(livraison ? { livraison } : {}) }}
           />
         </>
       )}

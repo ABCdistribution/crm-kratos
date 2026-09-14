@@ -118,12 +118,16 @@ export type ClientDetail = {
   _count: { visites: number; commandes: number };
 };
 
+export type StatutLivraison = 'EN_PREPARATION' | 'EXPEDIEE' | 'LIVREE_PARTIELLE' | 'LIVREE';
+
 export type CommandeRow = {
   id: string;
   numero: string;
   typeCmd: string | null;
   dateCommande: string | null;
   annulee: boolean;
+  statutLivraison: StatutLivraison;
+  dateLivraison: string | null;
   raisonSocialeCmd: string | null;
   idRepr: string | null;
   client: { id: string; codeAs400: string; enseigne: string } | null;
@@ -137,6 +141,12 @@ export type CommandeDetail = {
   typeCmd: string | null;
   dateCommande: string | null;
   annulee: boolean;
+  statutLivraison: StatutLivraison;
+  dateExpedition: string | null;
+  dateLivraison: string | null;
+  transporteur: string | null;
+  noSuivi: string | null;
+  commentaireLivraison: string | null;
   raisonSocialeCmd: string | null;
   idRepr: string | null;
   idCommandeApk: string | null;
@@ -156,12 +166,18 @@ export type CommandesResult = Paginated<CommandeRow> & {
   scope: { type: 'mine' | 'global'; idRepr: string | null };
 };
 
-export function listCommandes(params: { search?: string; page?: number; annulees?: boolean }) {
+export function listCommandes(params: {
+  search?: string;
+  page?: number;
+  annulees?: boolean;
+  livraison?: StatutLivraison;
+}) {
   return list<CommandeRow>(
     `/commandes${qs({
       search: params.search,
       page: params.page,
       annulees: params.annulees ? 'true' : undefined,
+      livraison: params.livraison,
       limit: 20,
     })}`,
   ) as Promise<CommandesResult>;

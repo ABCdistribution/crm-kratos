@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBooleanString, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBooleanString, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { StatutLivraison } from '@crm/database';
 
 export class QueryCommandesDto {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
@@ -27,4 +28,9 @@ export class QueryCommandesDto {
   @IsOptional()
   @IsBooleanString()
   annulees?: string;
+
+  @ApiPropertyOptional({ enum: StatutLivraison, description: 'Filtrer par statut de livraison' })
+  @IsOptional()
+  @IsEnum(StatutLivraison)
+  livraison?: StatutLivraison;
 }
