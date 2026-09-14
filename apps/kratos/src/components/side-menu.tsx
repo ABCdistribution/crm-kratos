@@ -7,7 +7,6 @@ import {
   Home,
   Store,
   Package,
-  CalendarDays,
   Footprints,
   ShoppingCart,
   ShieldAlert,
@@ -40,9 +39,9 @@ function sections(role: string): Section[] {
     { label: null, children: [{ href: '/', label: 'Accueil', icon: Home }] },
     {
       label: moi ? 'Mon terrain' : 'Terrain',
+      // L'agenda / les tournées ne vivent que sur l'app mobile — pas d'entrée web.
       children: [
         { href: '/clients', label: moi ? 'Mes magasins' : 'Magasins', icon: Store },
-        { href: '/tournees', label: moi ? 'Mon agenda' : 'Agenda', icon: CalendarDays },
         { href: '/visites', label: moi ? 'Historique de visites' : 'Visites', icon: Footprints },
         { href: '/commandes', label: moi ? 'Mes commandes' : 'Commandes', icon: ShoppingCart },
       ],
